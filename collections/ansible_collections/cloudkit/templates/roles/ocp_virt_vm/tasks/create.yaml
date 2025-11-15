@@ -16,6 +16,7 @@
     that:
       - template_parameters.vm_service_ports is match('^([0-9]+/(tcp|udp))(,[0-9]+/(tcp|udp))*$')
     fail_msg: "vm_service_ports must be in format 'port/protocol' (e.g., '22/tcp,80/tcp') where protocol is 'tcp' or 'udp'"
+  when: template_parameters.vm_service_ports is defined
 
 - name: Create cloud-init secret
   kubernetes.core.k8s:
