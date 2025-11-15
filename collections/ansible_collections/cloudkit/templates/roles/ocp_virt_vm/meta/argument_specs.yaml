@@ -9,28 +9,33 @@ argument_specs:
         type: dict
         description: VM configuration parameters
         options:
-          cpu_cores:
+          vm_cpu_cores:
             description: Number of CPU cores for the VM.
-            type: int
+            type: str
             required: false
-            default: 2
-          memory:
+            default: "2"
+          vm_memory_size:
             description: Amount of memory for the VM.
             type: str
             required: false
-            default: 2Gi
-          disk_size:
+            default: "4Gi"
+          vm_disk_size:
             description: Size of the VM root disk.
             type: str
             required: false
-            default: 10Gi
-          image_source:
+            default: "50Gi"
+          vm_image_source:
             description: >
               Container disk image or data source for the VM root disk.
               Can be a container image URL or PVC reference.
             type: str
             required: false
             default: "quay.io/containerdisks/fedora:latest"
+          storage_class:
+            description: StorageClass to use for VM persistent volumes.
+            type: str
+            required: false
+            default: "nfs-client"
           cloud_init_config:
             description: >
               Cloud-init configuration for VM initialization.
@@ -43,7 +48,7 @@ argument_specs:
             type: str
             required: false
             default: ""
-          exposed_ports:
+          vm_service_ports:
             description: >
               Ports to expose on the VM for ingress traffic.
               The syntax is a comma-separated list of `<port>/<protocol>` pairs, where `<protocol>` is either `tcp` or `udp`.
