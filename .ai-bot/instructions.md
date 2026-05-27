@@ -52,16 +52,11 @@ helm template test charts/aap/ > /dev/null
 
 ### Integration Tests
 
-Integration tests require a kind cluster. Only run these when asked or
-when the change touches workflows, service roles, or test fixtures:
-
-```bash
-uv run make test
-```
-
-This runs `setup_test_env.sh` (creates kind cluster, installs CRDs),
-`run_tests.sh` (baseline + override tests for all workflows and roles),
-and `teardown_test_env.sh` (deletes kind cluster).
+Integration tests require a kind cluster and significant resources.
+**Do not run integration tests automatically.** If your change touches
+workflows, service roles, or test fixtures, note in the PR description
+that integration testing is needed and let human reviewers trigger it
+via CI.
 
 ## Commit Format
 
@@ -82,6 +77,11 @@ Commits must be signed-off (`-s`). Include the Jira ticket key.
   `execution-environment.yaml` instead
 - `OWNERS` -- repo ownership; requires admin approval
 - `LICENSE` -- do not change
+- `.ai-bot/` -- bot configuration; changes require human review
+- `.ansible-lint-ignore` -- lint suppressions; additions require human approval
+- `pyproject.toml` -- Python project configuration
+- `.pre-commit-config.yaml` -- pre-commit hook configuration
+- `ansible.cfg` -- Ansible core configuration
 
 ## Repository Structure Quick Reference
 

@@ -13,7 +13,7 @@ settings below.
 
 ### Settings
 
-```
+```yaml
 lint_command: uv run ansible-lint
 ```
 
@@ -113,4 +113,4 @@ These are frequently seen in osac-aap reviews and how to handle them:
 | "Update meta/osac.yaml" | Ensure `implementation_strategy` matches role directory name |
 | "Cross-repo needed" | Document in PR description, do not attempt changes in other repos |
 | "Add to ansible-lint-ignore" | Only if genuinely unavoidable; explain in PR comment |
-| "Stale vendor" | Run `rm -rf vendor && ansible-galaxy collection install -r collections/requirements.yml` |
+| "Stale vendor" | Flag for human review; do not modify `vendor/` automatically |

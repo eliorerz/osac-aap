@@ -45,7 +45,7 @@ instead. Write the PR description to `.ai-bot/pr.md`.
 
 ### Phase 2: Fix
 
-1. Make the code change following all conventions from `instructions.md`
+1. Make the code change following all conventions from `.ai-bot/instructions.md`
 2. Key rules to remember:
    - FQCN for all modules (`ansible.builtin.*`, `kubernetes.core.*`)
    - Every task needs a `name:` field
