@@ -4,13 +4,6 @@
 # Admin credentials are loaded (via read_credentials.yaml) for VMS API calls
 # but are NEVER written into the CSI Secret or any tenant-namespace resource.
 
-- name: Fail if provisioning target is not yet supported
-  when: _provisioning_target != 'vmaas'
-  ansible.builtin.fail:
-    msg: >-
-      VAST storage provisioning for target '{{ _provisioning_target }}' is not yet
-      implemented. Only 'vmaas' is currently supported.
-
 - name: Assert _provider_tiers is defined and non-empty
   ansible.builtin.assert:
     that:
