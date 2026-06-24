@@ -12,6 +12,16 @@
     fail_msg: >-
       _provider_tiers must be provided by the service role dispatcher.
 
+- name: Assert _cluster_name is defined and non-empty
+  ansible.builtin.assert:
+    that:
+      - _cluster_name is defined
+      - _cluster_name | length > 0
+    fail_msg: >-
+      _cluster_name must be provided by the playbook. It is discovered from
+      the target cluster's infrastructure.config.openshift.io/cluster object
+      or the CLUSTER_NAME environment variable.
+
 - name: Compute unique protocols from tiers
   ansible.builtin.set_fact:
     _vast_required_protocols: "{{ _provider_tiers | map(attribute='protocol') | unique | sort | list }}"
@@ -229,6 +239,8 @@
             {{ _vast_sc_base_params
                | combine({'root_export': '/osac-' ~ tenant_name ~ '-' ~ _vast_tenant_uid_hash ~ '/' ~ item.name})
                | combine({'view_policy': _vast_nfs_view_policy})
+               | combine({'volumeNameFormat': 'csi:{id}:{namespace}:{name}:' ~ _cluster_name})
+               | combine({'ephemeralVolumeNameFormat': 'eph:{id}:{namespace}:{name}:' ~ _cluster_name})
                | combine(({'qos_policy': item.qos_policy} if item.qos_policy is defined else {})) }}
           reclaimPolicy: Delete
           volumeBindingMode: Immediate
@@ -255,6 +267,7 @@
             {{ _vast_sc_base_params
                | combine({'subsystem': 'view-' ~ tenant_name ~ '-' ~ _vast_tenant_uid_hash ~ '-' ~ item.name,
                           'tenant_name': tenant_name})
+               | combine({'volumeGroup': _cluster_name ~ '/{namespace}'})
                | combine({'csi.storage.k8s.io/node-stage-secret-name': _vast_csi_secret_ref.name})
                | combine({'csi.storage.k8s.io/node-stage-secret-namespace': _vast_csi_secret_ref.namespace})
                | combine(_vast_sc_block_encryption_params | default({})) }}
