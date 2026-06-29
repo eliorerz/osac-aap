@@ -79,13 +79,9 @@
           CRD is available.
       when: _cluster_name is not defined or _cluster_name | default('') | length == 0
 
-    - name: Validate cluster name is safe for volume naming
-      ansible.builtin.assert:
-        that:
-          - _cluster_name is regex('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
-        fail_msg: >-
-          Cluster name '{{ _cluster_name }}' contains characters unsafe for
-          volume naming. Expected lowercase alphanumeric, hyphens, or dots.
+    - name: Sanitize cluster name for volume naming
+      ansible.builtin.set_fact:
+        _cluster_name: "{{ _cluster_name | lower | regex_replace('[^a-z0-9.-]', '') | truncate(63, True, '', 0) }}"
 
   tasks:
     - name: Provision StorageClasses for all configured tiers
