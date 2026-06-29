@@ -19,8 +19,7 @@
       - _cluster_name | length > 0
     fail_msg: >-
       _cluster_name must be provided by the playbook. It is discovered from
-      the target cluster's infrastructure.config.openshift.io/cluster object
-      or the CLUSTER_NAME environment variable.
+      the target cluster's infrastructure.config.openshift.io/cluster object.
 
 - name: Compute unique protocols from tiers
   ansible.builtin.set_fact:
