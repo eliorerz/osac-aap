@@ -1,0 +1,8 @@
+---
+title: Default Bare Metal Instance Template
+description: >
+  General-purpose bare metal instance template. Provides a baseline hardware profile
+  for provisioning bare metal instances. Spec defaults will be extended in future
+  versions as tenant-configurable options (networking, OS image) are introduced.
+
+template_type: bare_metal_instance
