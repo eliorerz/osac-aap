@@ -4,7 +4,7 @@
   gather_facts: false
 
   vars:
-    tenant_name: "{{ ansible_eda.event.payload.metadata.name }}"
+    tenant_name: "{{ ansible_eda.event.payload.metadata.annotations['osac.openshift.io/tenant'] }}"
     tenant_namespace: "{{ ansible_eda.event.payload.metadata.namespace }}"
     tenant_uid: "{{ ansible_eda.event.payload.metadata.uid }}"
     _storage_tiers_raw: "{{ lookup('env', 'STORAGE_TIERS') }}"
