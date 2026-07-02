@@ -27,9 +27,14 @@ configAsCode:
   projectGitUri: ""
   projectGitBranch: ""
   importAgentsEnabled: false
+  importBcmAgentsEnabled: false
 
 importAgents:
   servers: []
+
+importBcmAgents:
+  cert: ""
+  key: ""
 
 serviceAccounts:
   osacSa: "osac-sa"
