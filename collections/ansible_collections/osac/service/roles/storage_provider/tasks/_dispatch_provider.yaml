@@ -8,7 +8,9 @@
 #
 # Uses from play scope:
 #   storage_provider_tiers              — full tier list (filtered here per provider)
-#   _cluster_name                        — target cluster name (for volume naming)
+#   _cluster_name                        — optional target cluster name override (for volume
+#                                          naming); ensure_storage_class self-discovers it from
+#                                          the target cluster's Infrastructure object when unset
 
 - name: "Compute filtered tiers for current provider"
   ansible.builtin.set_fact:

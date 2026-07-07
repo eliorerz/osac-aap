@@ -12,15 +12,6 @@
     fail_msg: >-
       _provider_tiers must be provided by the service role dispatcher.
 
-- name: Assert _cluster_name is defined and non-empty
-  ansible.builtin.assert:
-    that:
-      - _cluster_name is defined
-      - _cluster_name | length > 0
-    fail_msg: >-
-      _cluster_name must be provided by the playbook. It is discovered from
-      the target cluster's infrastructure.config.openshift.io/cluster object.
-
 - name: Compute unique protocols from tiers
   ansible.builtin.set_fact:
     _vast_required_protocols: "{{ _provider_tiers | map(attribute='protocol') | unique | sort | list }}"
@@ -72,6 +63,37 @@
 - name: Provision StorageClasses and CSI resources
   when: not (_vast_all_sc_exist | bool)
   block:
+    - name: Discover cluster name from target cluster infrastructure
+      when: _cluster_name is not defined or _cluster_name | length == 0
+      block:
+        - name: Query OpenShift infrastructure object for cluster name
+          kubernetes.core.k8s_info:
+            kubeconfig: "{{ _remote_kubeconfig | default(omit) }}"
+            validate_certs: false
+            api_version: config.openshift.io/v1
+            kind: Infrastructure
+            name: cluster
+          register: _infra_result
+
+        - name: Set cluster name from infrastructure object
+          ansible.builtin.set_fact:
+            _cluster_name: "{{ _infra_result.resources[0].status.infrastructureName }}"
+          when: >-
+            _infra_result.resources | length > 0 and
+            _infra_result.resources[0].status.infrastructureName is defined
+
+    - name: Fail if cluster name could not be determined
+      ansible.builtin.fail:
+        msg: >-
+          Could not discover the cluster name from infrastructure.config.openshift.io/cluster
+          on the target cluster. Verify the cluster is reachable and the Infrastructure
+          CRD is available.
+      when: _cluster_name is not defined or _cluster_name | default('') | length == 0
+
+    - name: Sanitize cluster name for volume naming
+      ansible.builtin.set_fact:
+        _cluster_name: "{{ _cluster_name | lower | regex_replace('[^a-z0-9.-]', '') | truncate(63, True, '', 0) }}"
+
     - name: Read per-tenant credentials and config from hub Secret
       ansible.builtin.include_tasks: read_tenant_credentials.yaml
 
