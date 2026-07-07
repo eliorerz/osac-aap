@@ -117,6 +117,15 @@
 
     # ── K8s resources: CSI Secret, StorageClasses, VolumeSnapshotClasses ──
 
+    - name: Ensure tenant_namespace exists on target cluster
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ tenant_namespace }}"
+
     - name: Set CSI Secret resource name
       ansible.builtin.set_fact:
         _vast_csi_secret_name: "vast-csi-{{ tenant_name }}"
