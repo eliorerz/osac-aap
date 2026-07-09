@@ -4,12 +4,12 @@ Guide for AI agents working on osac-aap — Ansible Automation Platform roles an
 
 ## Overview
 
-osac-aap contains Ansible collections that provision and manage OSAC infrastructure:
-- **Network backends**: CUDN, Netris, OpenStack, MetalLB
-- **Compute backends**: OpenShift Virtualization (KubeVirt)
-- **Cluster provisioning**: OpenShift 4.17, 4.20 templates
-- **Storage backends**: VAST
-- **Bare metal provisioning**: ESI, Metal3, NICo
+osac-aap contains Ansible collections that provision and manage OSAC infrastructure. Backends are added over time — the lists below are examples, not exhaustive:
+- **Network backends**: e.g. CUDN, Netris, OpenStack, MetalLB
+- **Compute backends**: e.g. OpenShift Virtualization (KubeVirt)
+- **Cluster provisioning**: e.g. OpenShift 4.17, 4.20 templates
+- **Storage backends**: e.g. VAST
+- **Bare metal provisioning**: e.g. OpenStack Ironic (via the ESI collection), Metal3, NICo
 
 Integration flow: fulfillment-service (API) → osac-operator (CRs) → AAP job templates → osac-aap playbooks → template roles
 
@@ -22,6 +22,8 @@ Install dependencies:
 uv sync --all-groups
 source .venv/bin/activate  # or prefix commands with `uv run`
 ```
+
+`uv sync` creates or updates `.venv` in place to match `pyproject.toml`/`uv.lock` — re-run it after dependency changes instead of recreating the venv manually.
 
 ### Key Configuration Files
 
@@ -74,35 +76,7 @@ osac-aap/
 
 ## Template Role Pattern
 
-Each template role in `osac.templates` declares capabilities in `meta/osac.yaml`:
-
-```yaml
-# Network/compute_instance/bare_metal_instance/storage_provider templates
-template_type: network  # network, compute_instance, bare_metal_instance, storage_provider, or cluster
-implementation_strategy: cudn_net  # Unique identifier
-capabilities:
-  supports_ipv4: true
-  supports_ipv6: true
-  supports_dual_stack: true
-
-# Additional fields for network templates:
-fabric_manager: cudn_net        # optional
-k8s_manager: cudn_localnet      # optional
-is_default: true                # optional
-
-# Cluster templates have a mostly different meta/osac.yaml structure:
-# title: Display name
-# description: Template description
-# default_node_request:
-#   - resourceClass: fc430
-#     numberOfNodes: 2
-# allowed_resource_classes: []  # Optional constraint
-#
-# Cluster templates generally do NOT use capabilities, fabric_manager,
-# k8s_manager, is_default, spec_defaults, or parameters fields.
-# Exception: ocp_4_20_ai_maas sets implementation_strategy even though it
-# is template_type: cluster — check the role's meta/osac.yaml, don't assume.
-```
+Each template role in `osac.templates` declares its metadata in `meta/osac.yaml`. The fields present depend on `template_type` (`network`, `compute_instance`, `bare_metal_instance`, `storage_provider`, or `cluster`) — see the exact structure for each type below.
 
 Running `playbook_osac_config_as_code.yml` publishes these as NetworkClass/ComputeClass resources in Kubernetes.
 
@@ -355,6 +329,7 @@ Excluded: `vendor/`, `charts/`
 
 Format:
 - `OSAC-XXXX: description` (with Jira ticket)
+- `NO-ISSUE: description` when no Jira ticket applies
 - Or conventional commits: `feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`
 
 DCO: Sign-off required (`git commit -s`)
@@ -370,7 +345,7 @@ Note: Use `Assisted-by`, not `Co-Authored-By` (Red Hat attribution standard).
 
 - Push to `fork` remote, not `origin`
 - PRs go from `fork/<branch>` to `origin/main`
-- Always include Jira ticket key in PR title (e.g., "OSAC-12345: add VAST storage backend")
+- Include the Jira ticket key in the PR title when one applies (e.g., "OSAC-12345: add VAST storage backend"); use `NO-ISSUE` otherwise, matching the commit message format above
 
 ### CI Checks
 
@@ -397,6 +372,7 @@ Use this table to go directly to the right file for common patterns:
 | Add new network backend | `collections/ansible_collections/osac/templates/roles/<backend>/` + `meta/osac.yaml` |
 | Add new compute backend | `collections/ansible_collections/osac/templates/roles/<backend>/` + `meta/osac.yaml` |
 | Add new cluster template | `collections/ansible_collections/osac/templates/roles/<template>/` + `meta/osac.yaml` |
+| Add new bare metal template | `collections/ansible_collections/osac/templates/roles/<backend>/` + `meta/osac.yaml` |
 | Add AAP job template | `playbook_osac_<action>_<resource>.yml` (top-level) |
 | Add shared utility | `collections/ansible_collections/osac/service/roles/<utility>/` |
 | Add integration test | `tests/integration/targets/<test_name>/` |
