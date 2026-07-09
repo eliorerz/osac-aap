@@ -1,4 +1,16 @@
 interfaces:
+  - name: {{ nmstate_mgmt_interface }}
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: true
+      auto-gateway: true
+      auto-dns: true
+      auto-routes: true
+      auto-route-metric: {{ nmstate_mgmt_route_metric | default(100) }}
+    ipv6:
+      enabled: false
   - name: {{ nmstate_interface }}
     type: ethernet
     state: up

@@ -4,7 +4,7 @@
 - name: Extract network attachment configuration
   ansible.builtin.set_fact:
     na_host_id: "{{ network_attachment.host_id }}"
-    na_interface: "{{ network_attachment.interface }}"
+    na_logical_interface: "{{ network_attachment.logical_interface_name }}"
     na_subnet_ref: "{{ network_attachment.subnet_ref }}"
 
 - name: Look up Subnet CR by UUID label
@@ -29,7 +29,7 @@
   ansible.builtin.debug:
     msg:
       - "Deleting Netris network attachment for host '{{ na_host_id }}'"
-      - "Interface: {{ na_interface }}"
+      - "Interface: {{ na_logical_interface }}"
       - "Subnet: {{ na_subnet_name }} (UUID: {{ na_subnet_ref }})"
 
 - name: Ensure Netris auth
@@ -116,11 +116,11 @@
   ansible.builtin.set_fact:
     _target_port: >-
       {{ (_ports_resp.json.data | default([]))
-         | selectattr('ifName', 'equalto', na_interface)
+         | selectattr('ifName', 'equalto', na_logical_interface)
          | list | first
          | default(
              (_ports_resp.json.data | default([]))
-             | selectattr('port', 'equalto', na_interface)
+             | selectattr('port', 'equalto', na_logical_interface)
              | list | first | default(none)
            ) }}
   when:
@@ -155,7 +155,7 @@
          | selectattr('meta.host_id', 'defined')
          | selectattr('meta.host_id', 'equalto', na_host_id)
          | selectattr('meta.interface', 'defined')
-         | selectattr('meta.interface', 'equalto', na_interface)
+         | selectattr('meta.interface', 'equalto', na_logical_interface)
          | list | first | default(none) }}
   when:
     - _target_vnet is defined and _target_vnet is not none
@@ -181,7 +181,7 @@
       {{ (_host_reservation is defined and _host_reservation is not none)
          | ternary(
              "Released IP reservation '" + (_host_reservation.host.address | default('unknown')) + "' for host '" + na_host_id + "'",
-             "No IP reservation found for host '" + na_host_id + "' interface '" + na_interface + "' — skipping"
+             "No IP reservation found for host '" + na_host_id + "' interface '" + na_logical_interface + "' — skipping"
            ) }}
   when:
     - _target_vnet is defined and _target_vnet is not none
@@ -221,5 +221,5 @@
 - name: Display deletion result
   ansible.builtin.debug:
     msg: >-
-      Network attachment deletion for host '{{ na_host_id }}' interface '{{ na_interface }}'
+      Network attachment deletion for host '{{ na_host_id }}' interface '{{ na_logical_interface }}'
       on V-Net '{{ na_subnet_name }}' completed
