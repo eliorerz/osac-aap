@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+@AGENTS.md
+
 ## Project Overview
 
 The osac-aap repository contains Ansible automation for provisioning OSAC (Open Sovereign AI Cloud) infrastructure resources. It integrates with Ansible Automation Platform (AAP) and provides playbooks, collections, template roles, and Config-as-Code. This repository was created by merging osac-templates into osac-aap.
