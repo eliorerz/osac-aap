@@ -1,7 +1,7 @@
 ---
-# NetworkAttachment maps to adding a server port to a Netris V-Net
-# Configures the BM host's switch port on the correct VLAN/V-Net
-# before OS provisioning begins
+# Generic network attachment — adds a server port to a V-Net.
+# If the port is already on another V-Net (e.g. parking network for
+# CaaS agents), removes it first, then adds to the target V-Net.
 
 - name: Extract network attachment configuration
   ansible.builtin.set_fact:
@@ -129,12 +129,66 @@
       Available ports: {{ _server_ports | map(attribute='port') | list }}.
   when: _target_port is none
 
-- name: Check if port is already on V-Net
+- name: Initialize current V-Net lookup
+  ansible.builtin.set_fact:
+    _current_vnet: ~
+
+- name: Find V-Net that currently owns this port
+  ansible.builtin.set_fact:
+    _current_vnet: "{{ item }}"
+  loop: "{{ _vnet_list_resp.json.data | default([]) }}"
+  when: >-
+    (item.ports | default([]))
+    | selectattr('id', 'equalto', _target_port.id)
+    | list | length > 0
+  loop_control:
+    label: "{{ item.name | default(item.id) }}"
+  no_log: true
+
+- name: Remove port from existing V-Net before attaching to target
+  when:
+    - _current_vnet is defined
+    - _current_vnet is not none
+    - _current_vnet is mapping
+    - _current_vnet.id != _target_vnet.id
+  block:
+    - name: Display parking V-Net removal
+      ansible.builtin.debug:
+        msg: >-
+          Port '{{ na_logical_interface }}' (ID: {{ _target_port.id }}) is currently on
+          V-Net '{{ _current_vnet.name }}' (ID: {{ _current_vnet.id }}) —
+          removing before attaching to '{{ na_subnet_name }}'
+
+    - name: Build ports list without the target port
+      ansible.builtin.set_fact:
+        _prev_vnet_ports: >-
+          {{ (_current_vnet.ports | default([]))
+             | rejectattr('id', 'equalto', _target_port.id)
+             | list }}
+
+    - name: Remove port from previous V-Net
+      ansible.builtin.uri:
+        url: "{{ netris_controller_url }}/api/v2/vnet/{{ _current_vnet.id }}"
+        method: PUT
+        headers:
+          Cookie: "connect.sid={{ netris_session_cookie }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          ports: "{{ _prev_vnet_ports }}"
+        return_content: true
+        status_code: [200, 201]
+        timeout: "{{ netris_timeout | default(30) }}"
+        validate_certs: "{{ netris_validate_certs | default(true) }}"
+      no_log: true
+
+- name: Check if port is already on target V-Net
   ansible.builtin.set_fact:
     _port_already_on_vnet: >-
-      {{ (_target_vnet.ports | default([]))
-         | selectattr('id', 'equalto', _target_port.id)
-         | list | length > 0 }}
+      {{ (_current_vnet is defined
+          and _current_vnet is not none
+          and _current_vnet is mapping
+          and _current_vnet.id == _target_vnet.id) | bool }}
 
 - name: Set already existed flag
   ansible.builtin.set_fact:

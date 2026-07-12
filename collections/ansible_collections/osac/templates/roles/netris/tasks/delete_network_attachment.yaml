@@ -1,11 +1,13 @@
 ---
-# NetworkAttachment deletion — removes the server port from the Netris V-Net
+# Generic network attachment deletion — removes port from tenant V-Net
+# and returns it to parking V-Net (CaaS) or leaves detached (BMaaS).
 
 - name: Extract network attachment configuration
   ansible.builtin.set_fact:
     na_host_name: "{{ network_attachment.host_name }}"
     na_logical_interface: "{{ network_attachment.logical_interface_name }}"
     na_subnet_ref: "{{ network_attachment.subnet_ref }}"
+    na_parking_vnet_name: "{{ network_attachment.parking_vnet_name | default('') }}"
 
 - name: Look up Subnet CR by UUID label
   kubernetes.core.k8s_info:
@@ -161,8 +163,65 @@
     - _updated_ports is defined
   no_log: true
 
+- name: Return port to parking V-Net
+  when:
+    - na_parking_vnet_name | length > 0
+    - _target_port is defined and _target_port is not none
+  block:
+    - name: Find parking V-Net by name
+      ansible.builtin.set_fact:
+        _parking_vnet: >-
+          {{ (_vnet_list_resp.json.data | default([]))
+             | selectattr('name', 'equalto', na_parking_vnet_name)
+             | list | first | default(none) }}
+
+    - name: Fail if parking V-Net not found
+      ansible.builtin.fail:
+        msg: >-
+          Parking V-Net '{{ na_parking_vnet_name }}' not found in Netris controller.
+      when: _parking_vnet is none
+
+    - name: Check if port is already on parking V-Net
+      ansible.builtin.set_fact:
+        _port_on_parking: >-
+          {{ (_parking_vnet.ports | default([]))
+             | selectattr('id', 'equalto', _target_port.id)
+             | list | length > 0 }}
+
+    - name: Build parking V-Net ports list with returned port
+      ansible.builtin.set_fact:
+        _parking_ports: >-
+          {{ (_parking_vnet.ports | default([]))
+             + [{'id': _target_port.id, 'state': 'active', 'accessMode': true}] }}
+      when: not (_port_on_parking | bool)
+
+    - name: Add port to parking V-Net
+      ansible.builtin.uri:
+        url: "{{ netris_controller_url }}/api/v2/vnet/{{ _parking_vnet.id }}"
+        method: PUT
+        headers:
+          Cookie: "connect.sid={{ netris_session_cookie }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          ports: "{{ _parking_ports }}"
+        return_content: true
+        status_code: [200, 201]
+        timeout: "{{ netris_timeout | default(30) }}"
+        validate_certs: "{{ netris_validate_certs | default(true) }}"
+      when: not (_port_on_parking | bool)
+      no_log: true
+
+    - name: Display parking V-Net return result
+      ansible.builtin.debug:
+        msg: >-
+          Port '{{ na_logical_interface }}' returned to parking V-Net
+          '{{ na_parking_vnet_name }}'
+
 - name: Display deletion result
   ansible.builtin.debug:
     msg: >-
       Network attachment deletion for host '{{ na_host_name }}' interface '{{ na_logical_interface }}'
       on V-Net '{{ na_subnet_name }}' completed
+      {{ (na_parking_vnet_name | length > 0)
+         | ternary('(returned to parking: ' ~ na_parking_vnet_name ~ ')', '(left detached)') }}
